@@ -1,0 +1,26 @@
+#!/bin/bash -x
+
+# create files necessary for tuxedo suite DE analysis
+# of mouse genome
+# Mark 6.18.2018 and JSL 2.2019
+
+base=GCF_000001635.26_GRCm38.p6_genomic
+
+
+fna=${base}.fna
+gff=${base}.gff
+gtf=${base}.gtf
+ss=${base}.ss 
+exons=${base}.exons
+
+# convert gff -> gtf
+gffread $gff -T -o $gtf
+
+# extract splice sites from genome annotation
+/home/apps/hisat2-2.1.0/extract_splice_sites.py $gtf > $ss
+
+# extract exons 
+/home/apps/hisat2-2.1.0/extract_exons.py $gtf > $exons
+
+# make the hisat index for DE analysis
+hisat2-build -p 32 --ss $ss --exon $exons $fna GRCm38.p6_trans

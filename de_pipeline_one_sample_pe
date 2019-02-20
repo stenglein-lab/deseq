@@ -1,0 +1,269 @@
+#!/bin/bash -x
+
+# use 'new tuxedo' suite to quantify DE 
+# 6.18.2018
+# see: https://www.nature.com/articles/nprot.2016.095
+
+id=$1
+
+# filtered, collapsed reads
+f1=${id}_R1_fu.fastq
+f2=${id}_R2_fu.fastq
+
+idx=/home/databases/mouse/GRCm38.p6_trans
+suffix=GRCm38.p6_trans 
+num_cpu=16
+gtf=/home/databases/mouse/GCF_000001635.26_GRCm38.p6_genomic.gtf
+
+hisat2 --dta -x $idx -1 $f1 -2 $f2 -S ${f1}.hs_${suffix}.sam -p $num_cpu
+
+samtools sort -@ $num_cpu -o ${f1}.hs_${suffix}.bam ${f1}.hs_${suffix}.sam  
+
+stringtie -p $num_cpu -G $gtf -o ${f1}.hs_${suffix}.gtf -l $id ${f1}.hs_${suffix}.bam
+
+
+
+
+# HISAT2 version 2.1.0 by Daehwan Kim (infphilo@gmail.com, www.ccb.jhu.edu/people/infphilo)
+# Usage: 
+#   hisat2 [options]* -x <ht2-idx> {-1 <m1> -2 <m2> | -U <r> | --sra-acc <SRA accession number>} [-S <sam>]
+# 
+#   <ht2-idx>  Index filename prefix (minus trailing .X.ht2).
+#   <m1>       Files with #1 mates, paired with files in <m2>.
+#              Could be gzip'ed (extension: .gz) or bzip2'ed (extension: .bz2).
+#   <m2>       Files with #2 mates, paired with files in <m1>.
+#              Could be gzip'ed (extension: .gz) or bzip2'ed (extension: .bz2).
+#   <r>        Files with unpaired reads.
+#              Could be gzip'ed (extension: .gz) or bzip2'ed (extension: .bz2).
+#   <SRA accession number>        Comma-separated list of SRA accession numbers, e.g. --sra-acc SRR353653,SRR353654.
+#   <sam>      File for SAM output (default: stdout)
+# 
+#   <m1>, <m2>, <r> can be comma-separated lists (no whitespace) and can be
+#   specified many times.  E.g. '-U file1.fq,file2.fq -U file3.fq'.
+# 
+# Options (defaults in parentheses):
+# 
+#  Input:
+#   -q                 query input files are FASTQ .fq/.fastq (default)
+#   --qseq             query input files are in Illumina's qseq format
+#   -f                 query input files are (multi-)FASTA .fa/.mfa
+#   -r                 query input files are raw one-sequence-per-line
+#   -c                 <m1>, <m2>, <r> are sequences themselves, not files
+#   -s/--skip <int>    skip the first <int> reads/pairs in the input (none)
+#   -u/--upto <int>    stop after first <int> reads/pairs (no limit)
+#   -5/--trim5 <int>   trim <int> bases from 5'/left end of reads (0)
+#   -3/--trim3 <int>   trim <int> bases from 3'/right end of reads (0)
+#   --phred33          qualities are Phred+33 (default)
+#   --phred64          qualities are Phred+64
+#   --int-quals        qualities encoded as space-delimited integers
+#   --sra-acc          SRA accession ID
+# 
+#  Alignment:
+#   --n-ceil <func>    func for max # non-A/C/G/Ts permitted in aln (L,0,0.15)
+#   --ignore-quals     treat all quality values as 30 on Phred scale (off)
+#   --nofw             do not align forward (original) version of read (off)
+#   --norc             do not align reverse-complement version of read (off)
+# 
+#  Spliced Alignment:
+#   --pen-cansplice <int>              penalty for a canonical splice site (0)
+#   --pen-noncansplice <int>           penalty for a non-canonical splice site (12)
+#   --pen-canintronlen <func>          penalty for long introns (G,-8,1) with canonical splice sites
+#   --pen-noncanintronlen <func>       penalty for long introns (G,-8,1) with noncanonical splice sites
+#   --min-intronlen <int>              minimum intron length (20)
+#   --max-intronlen <int>              maximum intron length (500000)
+#   --known-splicesite-infile <path>   provide a list of known splice sites
+#   --novel-splicesite-outfile <path>  report a list of splice sites
+#   --novel-splicesite-infile <path>   provide a list of novel splice sites
+#   --no-temp-splicesite               disable the use of splice sites found
+#   --no-spliced-alignment             disable spliced alignment
+#   --rna-strandness <string>          specify strand-specific information (unstranded)
+#   --tmo                              reports only those alignments within known transcriptome
+#   --dta                              reports alignments tailored for transcript assemblers
+#   --dta-cufflinks                    reports alignments tailored specifically for cufflinks
+#   --avoid-pseudogene                 tries to avoid aligning reads to pseudogenes (experimental option)
+#   --no-templatelen-adjustment        disables template length adjustment for RNA-seq reads
+# 
+#  Scoring:
+#   --mp <int>,<int>   max and min penalties for mismatch; lower qual = lower penalty <6,2>
+#   --sp <int>,<int>   max and min penalties for soft-clipping; lower qual = lower penalty <2,1>
+#   --no-softclip      no soft-clipping
+#   --np <int>         penalty for non-A/C/G/Ts in read/ref (1)
+#   --rdg <int>,<int>  read gap open, extend penalties (5,3)
+#   --rfg <int>,<int>  reference gap open, extend penalties (5,3)
+#   --score-min <func> min acceptable alignment score w/r/t read length
+#                      (L,0.0,-0.2)
+# 
+#  Reporting:
+#   -k <int> (default: 5) report up to <int> alns per read
+# 
+#  Paired-end:
+#   -I/--minins <int>  minimum fragment length (0), only valid with --no-spliced-alignment
+#   -X/--maxins <int>  maximum fragment length (500), only valid with --no-spliced-alignment
+#   --fr/--rf/--ff     -1, -2 mates align fw/rev, rev/fw, fw/fw (--fr)
+#   --no-mixed         suppress unpaired alignments for paired reads
+#   --no-discordant    suppress discordant alignments for paired reads
+# 
+#  Output:
+#   -t/--time          print wall-clock time taken by search phases
+#   --un <path>           write unpaired reads that didn't align to <path>
+#   --al <path>           write unpaired reads that aligned at least once to <path>
+#   --un-conc <path>      write pairs that didn't align concordantly to <path>
+#   --al-conc <path>      write pairs that aligned concordantly at least once to <path>
+#   (Note: for --un, --al, --un-conc, or --al-conc, add '-gz' to the option name, e.g.
+#   --un-gz <path>, to gzip compress output, or add '-bz2' to bzip2 compress output.)
+#   --summary-file     print alignment summary to this file.
+#   --new-summary      print alignment summary in a new style, which is more machine-friendly.
+#   --quiet            print nothing to stderr except serious errors
+#   --met-file <path>  send metrics to file at <path> (off)
+#   --met-stderr       send metrics to stderr (off)
+#   --met <int>        report internal counters & metrics every <int> secs (1)
+#   --no-head          supppress header lines, i.e. lines starting with @
+#   --no-sq            supppress @SQ header lines
+#   --rg-id <text>     set read group id, reflected in @RG line and RG:Z: opt field
+#   --rg <text>        add <text> ("lab:value") to @RG line of SAM header.
+#                      Note: @RG line only printed when --rg-id is set.
+#   --omit-sec-seq     put '*' in SEQ and QUAL fields for secondary alignments.
+# 
+#  Performance:
+#   -o/--offrate <int> override offrate of index; must be >= index's offrate
+#   -p/--threads <int> number of alignment threads to launch (1)
+#   --reorder          force SAM output order to match order of input reads
+#   --mm               use memory-mapped I/O for index; many 'hisat2's can share
+# 
+#  Other:
+#   --qc-filter        filter out reads that are bad according to QSEQ filter
+#   --seed <int>       seed for random number generator (0)
+#   --non-deterministic seed rand. gen. arbitrarily instead of using read attributes
+#   --remove-chrname   remove 'chr' from reference names in alignment
+#   --add-chrname      add 'chr' to reference names in alignment 
+#   --version          print version information and quit
+#   -h/--help          print this usage message
+# (ERR): hisat2-align exited with value 1
+
+
+
+#  Program: samtools (Tools for alignments in the SAM format)
+#  Version: 1.5 (using htslib 1.5)
+#  
+#  Usage:   samtools <command> [options]
+#  
+#  Commands:
+#    -- Indexing
+#       dict           create a sequence dictionary file
+#       faidx          index/extract FASTA
+#       index          index alignment
+#  
+#    -- Editing
+#       calmd          recalculate MD/NM tags and '=' bases
+#       fixmate        fix mate information
+#       reheader       replace BAM header
+#       rmdup          remove PCR duplicates
+#       targetcut      cut fosmid regions (for fosmid pool only)
+#       addreplacerg   adds or replaces RG tags
+#  
+#    -- File operations
+#       collate        shuffle and group alignments by name
+#       cat            concatenate BAMs
+#       merge          merge sorted alignments
+#       mpileup        multi-way pileup
+#       sort           sort alignment file
+#       split          splits a file by read group
+#       quickcheck     quickly check if SAM/BAM/CRAM file appears intact
+#       fastq          converts a BAM to a FASTQ
+#       fasta          converts a BAM to a FASTA
+#  
+#    -- Statistics
+#       bedcov         read depth per BED region
+#       depth          compute the depth
+#       flagstat       simple stats
+#       idxstats       BAM index stats
+#       phase          phase heterozygotes
+#       stats          generate stats (former bamcheck)
+#  
+#    -- Viewing
+#       flags          explain BAM flags
+#       tview          text alignment viewer
+#       view           SAM<->BAM<->CRAM conversion
+#       depad          convert padded BAM to unpadded BAM
+#  
+#  Usage: samtools sort [options...] [in.bam]
+#  Options:
+#    -l INT     Set compression level, from 0 (uncompressed) to 9 (best)
+#    -m INT     Set maximum memory per thread; suffix K/M/G recognized [768M]
+#    -n         Sort by read name
+#    -t TAG     Sort by value of TAG. Uses position as secondary index (or read name if -n is set)
+#    -o FILE    Write final output to FILE rather than standard output
+#    -T PREFIX  Write temporary files to PREFIX.nnnn.bam
+#        --input-fmt-option OPT[=VAL]
+#                 Specify a single input file format option in the form
+#                 of OPTION or OPTION=VALUE
+#    -O, --output-fmt FORMAT[,OPT[=VAL]]...
+#                 Specify output format (SAM, BAM, CRAM)
+#        --output-fmt-option OPT[=VAL]
+#                 Specify a single output file format option in the form
+#                 of OPTION or OPTION=VALUE
+#        --reference FILE
+#                 Reference sequence FASTA FILE [null]
+#    -@, --threads INT
+#                 Number of additional threads to use [0]
+#  
+
+#   StringTie v1.3.4c usage:
+#    stringtie <input.bam ..> [-G <guide_gff>] [-l <label>] [-o <out_gtf>] [-p <cpus>]
+#     [-v] [-a <min_anchor_len>] [-m <min_tlen>] [-j <min_anchor_cov>] [-f <min_iso>]
+#     [-C <coverage_file_name>] [-c <min_bundle_cov>] [-g <bdist>] [-u]
+#     [-e] [-x <seqid,..>] [-A <gene_abund.out>] [-h] {-B | -b <dir_path>} 
+#   Assemble RNA-Seq alignments into potential transcripts.
+#    Options:
+#    --version : print just the version at stdout and exit
+#    -G reference annotation to use for guiding the assembly process (GTF/GFF3)
+#    --rf assume stranded library fr-firststrand
+#    --fr assume stranded library fr-secondstrand
+#    -l name prefix for output transcripts (default: STRG)
+#    -f minimum isoform fraction (default: 0.1)
+#    -m minimum assembled transcript length (default: 200)
+#    -o output path/file name for the assembled transcripts GTF (default: stdout)
+#    -a minimum anchor length for junctions (default: 10)
+#    -j minimum junction coverage (default: 1)
+#    -t disable trimming of predicted transcripts based on coverage
+#       (default: coverage trimming is enabled)
+#    -c minimum reads per bp coverage to consider for transcript assembly
+#       (default: 2.5)
+#    -v verbose (log bundle processing details)
+#    -g gap between read mappings triggering a new bundle (default: 50)
+#    -C output a file with reference transcripts that are covered by reads
+#    -M fraction of bundle allowed to be covered by multi-hit reads (default:0.95)
+#    -p number of threads (CPUs) to use (default: 1)
+#    -A gene abundance estimation output file
+#    -B enable output of Ballgown table files which will be created in the
+#       same directory as the output GTF (requires -G, -o recommended)
+#    -b enable output of Ballgown table files but these files will be 
+#       created under the directory path given as <dir_path>
+#    -e only estimate the abundance of given reference transcripts (requires -G)
+#    -x do not assemble any transcripts on the given reference sequence(s)
+#    -u no multi-mapping correction (default: correction enabled)
+#    -h print this usage message and exit
+#   
+#   Transcript merge usage mode: 
+#     stringtie --merge [Options] { gtf_list | strg1.gtf ...}
+#   With this option StringTie will assemble transcripts from multiple
+#   input files generating a unified non-redundant set of isoforms. In this mode
+#   the following options are available:
+#     -G <guide_gff>   reference annotation to include in the merging (GTF/GFF3)
+#     -o <out_gtf>     output file name for the merged transcripts GTF
+#                       (default: stdout)
+#     -m <min_len>     minimum input transcript length to include in the merge
+#                       (default: 50)
+#     -c <min_cov>     minimum input transcript coverage to include in the merge
+#                       (default: 0)
+#     -F <min_fpkm>    minimum input transcript FPKM to include in the merge
+#                       (default: 1.0)
+#     -T <min_tpm>     minimum input transcript TPM to include in the merge
+#                       (default: 1.0)
+#     -f <min_iso>     minimum isoform fraction (default: 0.01)
+#     -g <gap_len>     gap between transcripts to merge together (default: 250)
+#     -i               keep merged transcripts with retained introns; by default
+#                      these are not kept unless there is strong evidence for them
+#     -l <label>       name prefix for output transcripts (default: MSTRG)
+#   
+#   Error: no input file provided!

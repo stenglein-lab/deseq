@@ -1,0 +1,4 @@
+N3_R1_fu.fastq.hs_GRCm38.p6_trans.gtf
+N5_R1_fu.fastq.hs_GRCm38.p6_trans.gtf
+R4_R1_fu.fastq.hs_GRCm38.p6_trans.gtf
+R5_R1_fu.fastq.hs_GRCm38.p6_trans.gtf
