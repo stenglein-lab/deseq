@@ -67,10 +67,9 @@ gffcompare -r /home/databases/mouse/GCF_000001635.26_GRCm38.p6_genomic.gtf -G -o
 # Calculate expression values for each sample using merged gtf reference
 ./simple_scheduler ./de_pipeline_one_sample_post_merge_mouse N3 N5 R4 R5
 
-# Ok.  The above script should have generated sub directories in the working directory...
-# each containing several files.
+# Ok.  The above script should have generated sub directories in the working directory...each containing several files.
 # move these sub directories from the server to a local location that will be used as the
-# working directory for the subsequent steps in R.
+# working directory for the subsequent steps in R and place them in a directory named 'ballgown'.
 
 # Open 'mouse_ballgown_final.R' in R Studio or similar.
 # Run the script all at once or line by line.  Make sure you have changed your working directory
