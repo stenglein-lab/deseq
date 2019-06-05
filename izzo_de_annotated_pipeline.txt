@@ -1,0 +1,78 @@
+#move all *.fastq files to the working directory
+
+#rename files so that they are in the following format
+#	ID_R1.fastq and ID_R2.fastq 
+# 		example: Output files from Illumina Sequencers usually look something like this:
+#			N3_S1_L001_R1_001.fastq and N3_S1_L001_R2_001.fastq (paired end reads)
+#			change them to look like this: N3_R1.fastq and N3_R2.fastq
+#			you will only have R1 files for single end reads
+
+# Download scripts to working directory
+# go to : https://github.com/stenglein-lab/stenglein_lab_scripts
+# click on 'clone or download' and copy the link that shows up in the drop down menu
+# in your terminal (make sure you are in your working directory), type the following
+# and paste the link
+
+git clone https://github.com/stenglein-lab/stenglein_lab_scripts
+
+#repeat the process at this website : https://github.com/stenglein-lab/taxonomy_pipeline
+
+# the files you just downloaded will be in sub directories and need to be moved up one
+# level into the working directory.
+
+mv ./taxonomy_pipeline/* ./
+mv ./stenglein_lab_scrips/* ./
+
+##Download the mouse reference genome (can use a different genome also)
+## If you want to put this in another location, move to that location first.
+## Or you can put it in the current working directory.
+
+wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/635/GCF_000001635.26_GRCm38.p6/GCF_000001635.26_GRCm38.p6_genomic.gff.gz
+
+wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/635/GCF_000001635.26_GRCm38.p6/GCF_000001635.26_GRCm38.p6_genomic.fna.gz
+
+# Make HiStat2 Index of above genome/annotation file (GFF in this case)
+## Note that this references other files and the path to those files will need to be 
+## modified in the script before running it in order for it to work correctly.
+### This step will take a couple of hours for a large (mammalian) genome.
+
+./build_hisat_index_mouse
+
+###START THE PIPELINE###
+
+# use simple_scheduler script to run the preprocessing steps for each sample
+# list each sample ID (the part before the '_R1.fastq' from above) after the script you're calling
+# with a space between each ID
+# single end reads
+ ./simple_scheduler ./run_preprocessing_pipeline_single_end_one_sample N3 N5 R4 R5
+# OR paired end reads
+# ./simple_scheduler ./run_preprocessing_pipeline_one_sample N3 N5 R4 R5
+
+
+# use simple_scheduler to run each sample through the first steps in the pipeline
+# single end reads
+./simple_scheduler de_pipeline_one_sample N3 N5 R4 R5
+# OR paired end reads
+# ./simple_scheduler de_pipeline_one_sample_pe N3 N5 R4 R5
+
+## Create mergelist file and put it in the working directory
+## See example file 'mergelist_mouse.txt'
+
+# Merge individual .gtf files
+stringtie --merge -p 16 -G /home/databases/mouse/GCF_000001635.26_GRCm38.p6_genomic.gtf -o stringtie_merged_mouse.gtf mergelist_mouse.txt 
+
+# Calculate stats to see how your merged.gtf file compares to the reference.gtf file.  
+gffcompare -r /home/databases/mouse/GCF_000001635.26_GRCm38.p6_genomic.gtf -G -o merged_mouse stringtie_merged_mouse.gtf 
+
+# Calculate expression values for each sample using merged gtf reference
+./simple_scheduler ./de_pipeline_one_sample_post_merge_mouse N3 N5 R4 R5
+
+# Ok.  The above script should have generated sub directories in the working directory...
+# each containing several files.
+# move these sub directories from the server to a local location that will be used as the
+# working directory for the subsequent steps in R.
+
+# Open 'mouse_ballgown_final.R' in R Studio or similar.
+# Run the script all at once or line by line.  Make sure you have changed your working directory
+# to the location with the output from the '...post_merge_mouse' script above.
+
